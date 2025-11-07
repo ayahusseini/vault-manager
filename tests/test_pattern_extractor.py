@@ -1,16 +1,24 @@
 import pytest
 
-from vault_manager.pattern_extractor import extract_all_tags
+from vault_manager.pattern_extractor import extract_all_tags, extract_all_headings, extract_all_links
 
 from unittest.mock import MagicMock
 
 
+def test_extract_all_links(sample_markdown_note):
+    extracted = extract_all_links(sample_markdown_note)
+    expected = {"ref1", "ref2", "topic1", "topic2"}  
+    assert extracted == expected
 
 def test_extract_all_tags(sample_markdown_note):
     extracted = extract_all_tags(sample_markdown_note)
     expected = {"tag1", "tag2", "tag3", "tag4"}  
     assert extracted == expected
 
+def test_extract_all_headings(sample_markdown_note):
+    extracted = extract_all_headings(sample_markdown_note)
+    expected = {"Title", "Content"}  
+    assert extracted == expected
 
 @pytest.mark.parametrize(
     "note,expected",
