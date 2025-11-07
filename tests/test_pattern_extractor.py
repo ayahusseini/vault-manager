@@ -5,6 +5,12 @@ from vault_manager.pattern_extractor import extract_all_tags, extract_all_headin
 from unittest.mock import MagicMock
 
 
+def test_extract_all_links_with_alias():
+    extracted = extract_all_links("[[raw link|displayname]]")
+    expected = {"raw link"}
+    assert extracted == expected
+
+
 def test_extract_all_links(sample_markdown_note):
     extracted = extract_all_links(sample_markdown_note)
     expected = {"ref1", "ref2", "topic1", "topic2"}  

@@ -7,7 +7,10 @@ authors = [
     { name = "ayahusseini", email = "aya.ahusseini@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+    "networkx>=3.5",
+]
 
 [project.scripts]
 vault-manager = "vault_manager:main"

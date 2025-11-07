@@ -1,2 +1,2 @@
-def main() -> None:
-    print("Hello from vault-manager!")
+from .pattern_extractor import *
+from .note_graph import *
