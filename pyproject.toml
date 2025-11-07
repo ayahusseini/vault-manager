@@ -1,7 +1,7 @@
 [project]
 name = "vault-manager"
 version = "0.1.0"
-description = "Add your description here"
+description = "Organise, parse, and analyse a vault of markdown notes."
 readme = "README.md"
 authors = [
     { name = "ayahusseini", email = "aya.ahusseini@gmail.com" }
