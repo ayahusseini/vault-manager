@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, mock_open, patch
         ("Third-Note.markdown", "third-note.markdown"),
         (r"some/folder/example.md", "example"),
         (r"some/folder/example", "example"),
+        (r"b vs. a", "b vs. a"),
     ],
 )
 def test_note_name_normalization(raw_name, expected_name):

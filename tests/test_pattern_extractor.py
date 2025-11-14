@@ -33,7 +33,10 @@ def test_extract_all_links_with_heading():
             "[[note title with a fullstop. and some text|alias]]",
             {"note title with a fullstop. and some text"},
         ),
-        ("09.27.01.excalidraw ", set()),
+        ("[[example 2025-09-01 12.48.30.excalidraw.md]]", set()),
+        ("[[example 2025-09-01 12.48.30.md]]", {"example 2025-09-01 12.48.30"}),
+        ("[[b vs. a]]", {"b vs. a"}),
+        ("[[b .mdma]]", {"b .mdma"})
     ],
 )
 def test_extract_all_links_ignores_non_markdown_files(raw, expected):
