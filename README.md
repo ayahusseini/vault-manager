@@ -68,6 +68,27 @@ uv sync
 uv run python <filename>
 ```
 
+## Formatting
+
+This repository includes a basic [ruff] configuration in `pyproject.toml`. To format all Python files in the repository, install Ruff and run the formatter:
+
+
+```
+uv pip install --upgrade ruff
+```
+
+Format all files in-place:
+
+```
+uv run ruff format .
+```
+
+To only check for issues without modifying files:
+
+```
+ruff check .
+```
+
 ## Running tests 
 
 Run tests using `uv` 

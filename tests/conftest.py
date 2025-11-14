@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.fixture
 def sample_markdown_note() -> str:
     return """
@@ -19,6 +20,7 @@ def sample_markdown_note() -> str:
     - [[topic1]]
     - [[topic2]]
     """
+
 
 @pytest.fixture
 def sample_topic_markdown_note() -> str:

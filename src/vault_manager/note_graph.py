@@ -1,9 +1,8 @@
+import networkx as nx
+from networkx.algorithms import community
 from vault_manager import extract_all_links, extract_all_tags
-from typing import Dict
 import os
 from dotenv import load_dotenv
-import networkx as nx
-import matplotlib as mpl
 
 
 class Note:
@@ -18,26 +17,27 @@ class Note:
 
     @staticmethod
     def normalise_name(notename: str) -> str:
-        return os.path.basename(notename).lower().split('.')[0].strip()
+        return os.path.basename(notename).lower().replace(".md", "").strip()
 
     def __getattr__(self, name):
         """Called when an attribute is not found"""
-        if name in ['is_topic', 'tags', 'raw_links']:
+        if name in ["is_topic", "tags", "links"]:
             if not self._content_loaded:
                 self.load_content()
-            return getattr(self, f'_{name}')
-        raise AttributeError(f'Attribute not defined: {name}.')
+            return getattr(self, f"_{name}")
+        raise AttributeError(f"Attribute not defined: {name}.")
 
     def load_content(self):
         """Load content when needed (lazy)"""
         if not self._content_loaded:
-            with open(self.filepath, 'r', encoding='utf-8') as f:
+            with open(self.filepath, "r", encoding="utf-8") as f:
                 content = f.read()
                 self._tags = extract_all_tags(content)
-                self._is_topic = 'topic' in self._tags
+                self._is_topic = "topic" in self._tags
 
-                self._raw_links = [self.normalise_name(
-                    l) for l in extract_all_links(content)]
+                self._links = [
+                    self.normalise_name(l) for l in extract_all_links(content)
+                ]
                 self._content_loaded = True
 
 
@@ -45,57 +45,53 @@ class NoteGraph:
     def __init__(self, vault_root):
         self.vault_root = vault_root
         if self.vault_root is None:
-            raise ValueError('vault_root not set in .env file')
-        self.notes = self._parse_notes_from_vault()
-        self.graph = self._build_graph()
+            raise ValueError("vault_root not set in .env file")
+        self.notes = dict()  # mapping note name : Note object
+        self.graph = nx.Graph()
+        self._build_graph()
 
-    def _parse_notes_from_vault(self) -> list[Note]:
-        all_notes = dict()
-
-        for root, dirs, files in os.walk(self.vault_root):
+    def _build_graph(self):
+        """Find all markdown files in vault"""
+        for root, _, files in os.walk(self.vault_root):
             for file in files:
-                if file.endswith('.md'):
-                    full_path = os.path.join(root, file)
-                    name = self._normalize_name(full_path)
+                if file.endswith(".md"):
+                    note = Note.from_filepath(os.path.join(root, file))
+                    self.notes[note.name] = note
 
-                    with open(full_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
+        for note_name, note in self.notes.items():
+            self.graph.add_node(note_name)
+            for link in note.links:
+                self.graph.add_edge(note_name, link)
 
-                    raw_links = extract_all_links(content)
-                    tags = extract_all_tags(content)
-                    is_topic = 'topic' in tags
+    def detect_orphans(self) -> set[str]:
+        """Detect notes that are not linked to by any other note"""
+        linked_notes = set()
+        for node, neighbours in self.graph.adjacency():
+            linked_notes.update(neighbours)
+        orphans = set(self.graph.nodes) - linked_notes
+        return orphans
 
-                    note = Note(
-                        filepath=full_path,
-                        name=name,
-                        all_tags=tags,
-                        is_topic=is_topic
-                    )
+    def detect_communities(
+        self, resolution: float = 0.5, seed: int = 42
+    ) -> list[set[str]]:
+        """Detect communities of notes using the Louvain Algorithm.
+        Higher resolution values lead to more, smaller communities.
+        """
+        if len(self.graph) == 0:
+            return []
 
-                    note._raw_links = [self._normalize_name(
-                        l) for l in raw_links if not l.endswith('excalidraw')]
-                    all_notes.update({name: note})
+        partition = community.louvain_communities(
+            self.graph, resolution=resolution, seed=seed
+        )
 
-        return all_notes
-
-    def _build_graph(self) -> nx.Graph:
-        G = nx.Graph()
-
-        for notename, note in self.notes.items():
-            if notename not in G.nodes:
-                G.add_node(notename, note=note)
-            for linkname in note._raw_links:
-                if linkname in G.nodes:
-                    G.add_edge(notename, linkname)
-                elif linkname in self.notes:
-                    G.add_node(linkname, note=self.notes[linkname])
-                    G.add_edge(notename, linkname)
-                else:
-                    continue
-        return G
+        return partition
 
 
 if __name__ == "__main__":
     load_dotenv()
     vault_root = os.environ.get("VAULT_PATH")
     n = NoteGraph(vault_root)
+    print(f"Loaded {len(n.notes)} notes from vault at {vault_root}")
+    p = n.detect_communities()
+    o = n.detect_orphans()
+    print(f"Detected orphans: \n\n {o}")
