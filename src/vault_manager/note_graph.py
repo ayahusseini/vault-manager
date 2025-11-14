@@ -18,7 +18,7 @@ class Note:
 
     @staticmethod
     def normalise_name(notename: str) -> str:
-        return os.path.basename(notename).lower().replace(".md", "").strip()
+        return os.path.basename(notename).lower().split('.')[0].strip()
 
     def __getattr__(self, name):
         """Called when an attribute is not found"""
@@ -30,14 +30,14 @@ class Note:
 
     def load_content(self):
         """Load content when needed (lazy)"""
-        if self._content_loaded:
+        if not self._content_loaded:
             with open(self.filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
                 self._tags = extract_all_tags(content)
                 self._is_topic = 'topic' in self._tags
 
-                self._raw_links = [self.normalize_name(l) for l in extract_all_links(content)
-                                   if not l.endswith('excalidraw')]
+                self._raw_links = [self.normalise_name(
+                    l) for l in extract_all_links(content)]
                 self._content_loaded = True
 
 
