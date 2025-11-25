@@ -1,8 +1,9 @@
-import networkx as nx
-from networkx.algorithms import community
-from vault_manager import extract_all_links, extract_all_tags
+import spacy
+from vault_manager import extract_all_links, extract_all_tags, is_rejected_extension
 import os
 from dotenv import load_dotenv
+
+nlp = spacy.load("en_core_web_sm")
 
 
 class Note:
@@ -44,54 +45,36 @@ class Note:
 class NoteGraph:
     def __init__(self, vault_root):
         self.vault_root = vault_root
-        if self.vault_root is None:
-            raise ValueError("vault_root not set in .env file")
+        if not os.path.exists(vault_root):
+            raise ValueError("vault_root doesn't exist")
         self.notes = dict()  # mapping note name : Note object
-        self.graph = nx.Graph()
-        self._build_graph()
+        # Each note object has a lazy '.links' attribute to fetch links
+
+    @classmethod
+    def from_env(cls):
+        load_dotenv()
+        pth = os.environ.get("VAULT_PATH")
+        if pth is None:
+            raise ValueError("vault_root not set in .env file")
+        return cls(pth)
 
     def _build_graph(self):
         """Find all markdown files in vault"""
         for root, _, files in os.walk(self.vault_root):
             for file in files:
-                if file.endswith(".md"):
+                if file.endswith(".md") and not file.replace(".md", "").endswith(
+                    ".excalidraw"
+                ):
                     note = Note.from_filepath(os.path.join(root, file))
                     self.notes[note.name] = note
 
-        for note_name, note in self.notes.items():
-            self.graph.add_node(note_name)
-            for link in note.links:
-                self.graph.add_edge(note_name, link)
-
-    def detect_orphans(self) -> set[str]:
-        """Detect notes that are not linked to by any other note"""
-        linked_notes = set()
-        for node, neighbours in self.graph.adjacency():
-            linked_notes.update(neighbours)
-        orphans = set(self.graph.nodes) - linked_notes
-        return orphans
-
-    def detect_communities(
-        self, resolution: float = 0.5, seed: int = 42
-    ) -> list[set[str]]:
-        """Detect communities of notes using the Louvain Algorithm.
-        Higher resolution values lead to more, smaller communities.
-        """
-        if len(self.graph) == 0:
-            return []
-
-        partition = community.louvain_communities(
-            self.graph, resolution=resolution, seed=seed
-        )
-
-        return partition
+    def get_topic_graph(self):
+        """Return a weighted graph containing just the topic notes
+        If two nodes were connected in the original graph, the weight is -1
+        Otherwise, if they were a distance of '2' away, the weight is -2, etc."""
+        for node in self.graph.nodes:
+            pass
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    vault_root = os.environ.get("VAULT_PATH")
-    n = NoteGraph(vault_root)
-    print(f"Loaded {len(n.notes)} notes from vault at {vault_root}")
-    p = n.detect_communities()
-    o = n.detect_orphans()
-    print(f"Detected orphans: \n\n {o}")
+    n = NoteGraph.from_env()
